@@ -19,6 +19,7 @@ db.exec(`
     category TEXT,
     price REAL DEFAULT 0,
     is_premium INTEGER DEFAULT 0,
+    video_url TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )
 `);
@@ -30,6 +31,9 @@ if (!tableInfo.find(c => c.name === 'price')) {
 }
 if (!tableInfo.find(c => c.name === 'is_premium')) {
   db.exec("ALTER TABLE prompts ADD COLUMN is_premium INTEGER DEFAULT 0");
+}
+if (!tableInfo.find(c => c.name === 'video_url')) {
+  db.exec("ALTER TABLE prompts ADD COLUMN video_url TEXT");
 }
 
 // Seed data if empty
@@ -118,7 +122,7 @@ async function startServer() {
   });
 
   app.post("/api/prompts", (req, res) => {
-    const { title, prompt, category, image_url, creator, price, is_premium } = req.body;
+    const { title, prompt, category, image_url, video_url, creator, price, is_premium } = req.body;
     
     if (!title || !prompt || !category || !image_url) {
       return res.status(400).json({ error: "Missing required fields" });
@@ -126,9 +130,9 @@ async function startServer() {
 
     try {
       const info = db.prepare(`
-        INSERT INTO prompts (title, prompt, category, image_url, creator, price, is_premium, loves, views)
-        VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0)
-      `).run(title, prompt, category, image_url, creator || 'Mustafe Saqare', price || 0, is_premium ? 1 : 0);
+        INSERT INTO prompts (title, prompt, category, image_url, video_url, creator, price, is_premium, loves, views)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0)
+      `).run(title, prompt, category, image_url, video_url || null, creator || 'Mustafe Saqare', price || 0, is_premium ? 1 : 0);
       
       const newPrompt = db.prepare("SELECT * FROM prompts WHERE id = ?").get(info.lastInsertRowid);
       res.status(201).json(newPrompt);

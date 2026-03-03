@@ -11,6 +11,8 @@ import {
   Github,
   Twitter,
   Instagram,
+  Facebook,
+  Music2,
   Check,
   Lock,
   ShoppingBag,
@@ -24,7 +26,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { Prompt } from './types';
 
-const Navbar = ({ onSearch, onScrollTo, onUploadClick, isAdmin }: { onSearch: (val: string) => void, onScrollTo: (id: string) => void, onUploadClick: () => void, isAdmin: boolean }) => {
+const Navbar = ({ onSearch, onScrollTo, onUploadClick, onAdminLogin, isAdmin }: { onSearch: (val: string) => void, onScrollTo: (id: string) => void, onUploadClick: () => void, onAdminLogin: () => void, isAdmin: boolean }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchValue, setSearchValue] = useState('');
 
@@ -48,8 +50,15 @@ const Navbar = ({ onSearch, onScrollTo, onUploadClick, isAdmin }: { onSearch: (v
           <div className="hidden lg:flex items-center gap-6 text-sm font-medium text-white/60">
             <button onClick={() => onScrollTo('hero')} className="hover:text-gold transition-colors">Home</button>
             <button onClick={() => onScrollTo('gallery')} className="hover:text-gold transition-colors">Prompts</button>
-            <button onClick={() => onScrollTo('footer')} className="hover:text-gold transition-colors">About</button>
             <button onClick={() => onScrollTo('contact')} className="hover:text-gold transition-colors">Contact</button>
+            {isAdmin && (
+              <button 
+                onClick={() => onScrollTo('admin-dashboard')} 
+                className="text-gold font-bold border border-gold/30 px-4 py-1.5 rounded-full hover:bg-gold hover:text-black transition-all flex items-center gap-2"
+              >
+                <Lock className="w-3 h-3" /> Dashboard
+              </button>
+            )}
           </div>
         </div>
 
@@ -70,13 +79,12 @@ const Navbar = ({ onSearch, onScrollTo, onUploadClick, isAdmin }: { onSearch: (v
         </div>
 
         <div className="flex items-center gap-4">
-          {isAdmin && (
+          {!isAdmin && (
             <button 
-              onClick={onUploadClick}
-              className="flex items-center gap-2 bg-gold text-black px-4 py-2 rounded-full text-sm font-bold hover:bg-gold-light transition-colors shadow-lg"
+              onClick={onAdminLogin}
+              className="text-white/40 hover:text-gold transition-colors text-xs font-bold uppercase tracking-widest hidden sm:block"
             >
-              <Upload className="w-4 h-4" />
-              <span className="hidden sm:inline">Admin Upload</span>
+              Admin Login
             </button>
           )}
           <button className="sm:hidden text-white/60 hover:text-white">
@@ -193,6 +201,13 @@ const PromptCard: React.FC<{ prompt: Prompt, onClick: (p: Prompt) => void | Prom
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
           referrerPolicy="no-referrer"
         />
+        {prompt.video_url && (
+          <div className="absolute top-4 right-14 z-10">
+            <div className="bg-black/60 text-white p-1.5 rounded-full backdrop-blur-md">
+              <Video className="w-4 h-4" />
+            </div>
+          </div>
+        )}
         {prompt.is_premium === 1 && (
           <div className="absolute top-4 left-4 z-10">
             <div className="bg-gold text-black text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 shadow-lg">
@@ -243,7 +258,7 @@ const PromptCard: React.FC<{ prompt: Prompt, onClick: (p: Prompt) => void | Prom
           <div className="flex items-center gap-4 text-white/40">
             <button 
               onClick={handleLove}
-              className={`flex items-center gap-1 hover:text-red-500 transition-colors ${isLoved ? 'text-red-500' : ''}`}
+              className={`flex items-center gap-1 hover:text-orange-500 transition-colors ${isLoved ? 'text-orange-500' : ''}`}
             >
               <Heart className={`w-4 h-4 ${isLoved ? 'fill-current' : ''}`} />
               <span className="text-xs">{loves}</span>
@@ -312,12 +327,23 @@ const Modal = ({ prompt, onClose }: { prompt: Prompt, onClose: () => void }) => 
         </button>
 
         <div className="lg:w-1/2 aspect-square lg:aspect-auto relative">
-          <img 
-            src={prompt.image_url} 
-            alt={prompt.title}
-            className="w-full h-full object-cover"
-            referrerPolicy="no-referrer"
-          />
+          {prompt.video_url ? (
+            <video 
+              src={prompt.video_url} 
+              className="w-full h-full object-cover" 
+              autoPlay 
+              loop 
+              muted 
+              playsInline
+            />
+          ) : (
+            <img 
+              src={prompt.image_url} 
+              alt={prompt.title}
+              className="w-full h-full object-cover"
+              referrerPolicy="no-referrer"
+            />
+          )}
           {prompt.is_premium === 1 && !isUnlocked && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
               <div className="text-center p-8">
@@ -488,7 +514,7 @@ const Modal = ({ prompt, onClose }: { prompt: Prompt, onClose: () => void }) => 
 
                 <div className="grid grid-cols-2 gap-4 mb-8">
                   <div className="glass rounded-xl p-4 flex flex-col items-center justify-center text-center">
-                    <Heart className="w-5 h-5 text-red-500 mb-1" />
+                    <Heart className="w-5 h-5 text-orange-500 mb-1" />
                     <span className="text-xl font-bold">{prompt.loves}</span>
                     <span className="text-white/40 text-[10px] uppercase tracking-widest">Loves</span>
                   </div>
@@ -555,6 +581,7 @@ const UploadModal = ({ onClose, onUploadSuccess }: { onClose: () => void, onUplo
     prompt: '',
     category: 'Futuristic',
     image_url: '',
+    video_url: '',
     price: '0',
     is_premium: false
   });
@@ -707,6 +734,17 @@ const UploadModal = ({ onClose, onUploadSuccess }: { onClose: () => void, onUplo
                   />
                 </div>
 
+                <div>
+                  <label className="block text-[10px] uppercase tracking-widest text-white/40 mb-2 font-bold">Video URL (Optional)</label>
+                  <input 
+                    type="url" 
+                    placeholder="https://example.com/video.mp4"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 focus:outline-none focus:border-gold transition-colors text-white"
+                    value={formData.video_url}
+                    onChange={(e) => setFormData({...formData, video_url: e.target.value})}
+                  />
+                </div>
+
                 <div className="col-span-1 sm:col-span-2 pt-4">
                   <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/10">
                     <div className="flex items-center gap-4">
@@ -777,6 +815,289 @@ const UploadModal = ({ onClose, onUploadSuccess }: { onClose: () => void, onUplo
   );
 };
 
+const AdminLoginModal = ({ onClose, onLogin }: { onClose: () => void, onLogin: () => void }) => {
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password === 'admin123') { // Simple password for demo
+      onLogin();
+      onClose();
+    } else {
+      setError('Invalid admin password');
+    }
+  };
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+    >
+      <div className="absolute inset-0 bg-black/90 backdrop-blur-xl" onClick={onClose} />
+      <motion.div 
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 20 }}
+        className="relative w-full max-w-md bg-[#0a0a0a] rounded-3xl p-10 border border-white/10 shadow-2xl"
+      >
+        <button onClick={onClose} className="absolute top-6 right-6 p-2 glass rounded-full hover:bg-white/10 transition-colors">
+          <X className="w-5 h-5" />
+        </button>
+        <div className="text-center mb-10">
+          <div className="w-16 h-16 bg-gold rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
+            <Lock className="w-8 h-8 text-black" />
+          </div>
+          <h2 className="text-3xl font-serif font-bold mb-2">Admin Access</h2>
+          <p className="text-white/40 text-sm">Enter your credentials to access the management dashboard.</p>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-[10px] uppercase tracking-widest text-white/40 mb-2 font-bold">Password</label>
+            <input 
+              required
+              type="password" 
+              placeholder="••••••••"
+              className="w-full bg-white/5 border border-white/10 rounded-xl py-4 px-6 focus:outline-none focus:border-gold transition-colors text-white text-center text-xl tracking-[0.5em]"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setError('');
+              }}
+            />
+            {error && <p className="text-red-500 text-xs mt-2 text-center font-bold">{error}</p>}
+          </div>
+          <button 
+            type="submit"
+            className="w-full bg-gold text-black py-4 rounded-xl font-bold text-lg hover:bg-gold-light transition-all shadow-xl"
+          >
+            Login to Dashboard
+          </button>
+        </form>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+const AdminDashboard = ({ onUploadSuccess }: { onUploadSuccess: (p: Prompt) => void }) => {
+  const [formData, setFormData] = useState({
+    title: '',
+    prompt: '',
+    category: 'Futuristic',
+    image_url: '',
+    video_url: '',
+    price: '0',
+    is_premium: false
+  });
+  const [isUploading, setIsUploading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsUploading(true);
+    try {
+      const res = await fetch('/api/prompts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          price: parseFloat(formData.price),
+          is_premium: formData.is_premium ? 1 : 0
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        onUploadSuccess(data);
+        setShowSuccess(true);
+        setFormData({
+          title: '',
+          prompt: '',
+          category: 'Futuristic',
+          image_url: '',
+          video_url: '',
+          price: '0',
+          is_premium: false
+        });
+        setTimeout(() => setShowSuccess(false), 5000);
+      } else {
+        alert(data.error || "Failed to upload prompt");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("An error occurred during upload");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  return (
+    <section id="admin-dashboard" className="max-w-7xl mx-auto px-6 py-24 border-t border-white/10 bg-white/[0.02]">
+      <div className="flex flex-col md:flex-row items-start justify-between mb-16 gap-8">
+        <div className="max-w-xl">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-gold rounded-xl flex items-center justify-center shadow-lg">
+              <Lock className="w-5 h-5 text-black" />
+            </div>
+            <span className="text-gold text-xs font-bold uppercase tracking-[0.3em] block">Admin Control</span>
+          </div>
+          <h2 className="text-4xl md:text-5xl font-serif font-bold mb-6">Prompt <span className="italic text-gold">Management</span></h2>
+          <p className="text-white/40 text-lg font-light">
+            Dedicated workspace for uploading and managing your AI prompt collection. All changes are reflected instantly in the public gallery.
+          </p>
+        </div>
+        
+        {showSuccess && (
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="bg-emerald-500/10 border border-emerald-500/20 p-6 rounded-2xl flex items-center gap-4"
+          >
+            <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center">
+              <Check className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <p className="text-white font-bold">Upload Successful!</p>
+              <p className="text-white/60 text-xs">Prompt is now live in the gallery.</p>
+            </div>
+          </motion.div>
+        )}
+      </div>
+
+      <div className="glass p-8 sm:p-12 rounded-3xl border border-white/10 shadow-2xl">
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+          <div className="lg:col-span-2 space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="md:col-span-2">
+                <label className="block text-[10px] uppercase tracking-widest text-white/40 mb-3 font-bold">Prompt Title</label>
+                <input 
+                  required
+                  type="text" 
+                  placeholder="e.g. Cyber Samurai at Night"
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 focus:outline-none focus:border-gold transition-colors text-white text-lg"
+                  value={formData.title}
+                  onChange={(e) => setFormData({...formData, title: e.target.value})}
+                />
+              </div>
+              
+              <div className="md:col-span-2">
+                <label className="block text-[10px] uppercase tracking-widest text-white/40 mb-3 font-bold">The Prompt Text</label>
+                <textarea 
+                  required
+                  rows={6}
+                  placeholder="Describe the prompt in detail..."
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 focus:outline-none focus:border-gold transition-colors text-white resize-none text-lg"
+                  value={formData.prompt}
+                  onChange={(e) => setFormData({...formData, prompt: e.target.value})}
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] uppercase tracking-widest text-white/40 mb-3 font-bold">Category</label>
+                <div className="relative">
+                  <select 
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 focus:outline-none focus:border-gold transition-colors text-white appearance-none cursor-pointer"
+                    value={formData.category}
+                    onChange={(e) => setFormData({...formData, category: e.target.value})}
+                  >
+                    {['Futuristic', 'Nature', 'Abstract', 'Fantasy', 'Sci-Fi', 'Portrait', 'Architecture'].map(cat => (
+                      <option key={cat} value={cat} className="bg-[#0a0a0a]">{cat}</option>
+                    ))}
+                  </select>
+                  <ChevronRight className="absolute right-6 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 rotate-90 pointer-events-none" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] uppercase tracking-widest text-white/40 mb-3 font-bold">Price (USD)</label>
+                <div className="relative">
+                  <DollarSign className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gold" />
+                  <input 
+                    type="number" 
+                    step="0.01"
+                    placeholder="19.99"
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-14 pr-6 focus:outline-none focus:border-gold transition-colors text-white"
+                    value={formData.price}
+                    onChange={(e) => setFormData({...formData, price: e.target.value})}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-8">
+            <div>
+              <label className="block text-[10px] uppercase tracking-widest text-white/40 mb-3 font-bold">Media Assets</label>
+              <div className="space-y-4">
+                <div className="relative">
+                  <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
+                  <input 
+                    required
+                    type="url" 
+                    placeholder="Image URL"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:border-gold transition-colors text-white text-sm"
+                    value={formData.image_url}
+                    onChange={(e) => setFormData({...formData, image_url: e.target.value})}
+                  />
+                </div>
+                <div className="relative">
+                  <Video className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
+                  <input 
+                    type="url" 
+                    placeholder="Video URL (Optional)"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:border-gold transition-colors text-white text-sm"
+                    value={formData.video_url}
+                    onChange={(e) => setFormData({...formData, video_url: e.target.value})}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 bg-white/5 rounded-3xl border border-white/10">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${formData.is_premium ? 'bg-gold text-black' : 'bg-white/10 text-white/40'}`}>
+                    <Sparkles className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white">Premium Status</p>
+                    <p className="text-[10px] text-white/40 uppercase tracking-widest">Enable for sale</p>
+                  </div>
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => setFormData({...formData, is_premium: !formData.is_premium})}
+                  className={`w-14 h-7 rounded-full relative transition-colors ${formData.is_premium ? 'bg-gold' : 'bg-white/10'}`}
+                >
+                  <div className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow-lg transition-all ${formData.is_premium ? 'left-8' : 'left-1'}`} />
+                </button>
+              </div>
+              <p className="text-white/40 text-xs leading-relaxed">
+                Premium prompts are locked behind a paywall. Users must complete a payment to view the full prompt text.
+              </p>
+            </div>
+
+            <button 
+              type="submit"
+              disabled={isUploading}
+              className="w-full bg-gold text-black py-5 rounded-3xl font-bold text-xl hover:bg-gold-light transition-all shadow-2xl flex items-center justify-center gap-3 disabled:opacity-50"
+            >
+              {isUploading ? (
+                <div className="w-6 h-6 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+              ) : (
+                <>
+                  <Plus className="w-6 h-6" /> Upload Prompt
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+  );
+};
+
 const ContactSection = () => {
   return (
     <section id="contact" className="max-w-7xl mx-auto px-6 py-24 border-t border-white/5">
@@ -789,6 +1110,24 @@ const ContactSection = () => {
           </p>
           
           <div className="space-y-8">
+            <div className="flex items-center gap-6">
+              <div className="w-12 h-12 rounded-2xl bg-gold/10 flex items-center justify-center">
+                <Facebook className="w-6 h-6 text-gold" />
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-white/40 mb-1">Facebook</p>
+                <p className="text-white font-medium">Mustafe Saqare</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-6">
+              <div className="w-12 h-12 rounded-2xl bg-gold/10 flex items-center justify-center">
+                <Music2 className="w-6 h-6 text-gold" />
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-white/40 mb-1">TikTok</p>
+                <p className="text-white font-medium">@MustafeSaqare</p>
+              </div>
+            </div>
             <div className="flex items-center gap-6">
               <div className="w-12 h-12 rounded-2xl bg-gold/10 flex items-center justify-center">
                 <Twitter className="w-6 h-6 text-gold" />
@@ -867,7 +1206,7 @@ const ContactSection = () => {
   );
 };
 
-const Footer = ({ onScrollTo }: { onScrollTo: (id: string) => void }) => {
+const Footer = ({ onScrollTo, onAdminLogin }: { onScrollTo: (id: string) => void, onAdminLogin: () => void }) => {
   return (
     <footer id="footer" className="bg-[#0a0a0a] border-t border-white/5 pt-20 pb-10 px-6">
       <div className="max-w-7xl mx-auto">
@@ -883,6 +1222,12 @@ const Footer = ({ onScrollTo }: { onScrollTo: (id: string) => void }) => {
               Empowering creators with the most powerful AI prompts. Join our community and start building the future of digital art today.
             </p>
             <div className="flex gap-4">
+              <a href="https://facebook.com" target="_blank" rel="noreferrer" className="p-3 glass rounded-full hover:bg-gold hover:text-black transition-all">
+                <Facebook className="w-5 h-5" />
+              </a>
+              <a href="https://tiktok.com" target="_blank" rel="noreferrer" className="p-3 glass rounded-full hover:bg-gold hover:text-black transition-all">
+                <Music2 className="w-5 h-5" />
+              </a>
               <a href="https://twitter.com" target="_blank" rel="noreferrer" className="p-3 glass rounded-full hover:bg-gold hover:text-black transition-all">
                 <Twitter className="w-5 h-5" />
               </a>
@@ -901,6 +1246,7 @@ const Footer = ({ onScrollTo }: { onScrollTo: (id: string) => void }) => {
               <li><button onClick={() => onScrollTo('hero')} className="hover:text-gold transition-colors">Home</button></li>
               <li><button onClick={() => onScrollTo('gallery')} className="hover:text-gold transition-colors">Prompts</button></li>
               <li><button onClick={() => onScrollTo('footer')} className="hover:text-gold transition-colors">About Us</button></li>
+              <li><button onClick={onAdminLogin} className="hover:text-gold transition-colors">Admin Login</button></li>
             </ul>
           </div>
 
@@ -933,6 +1279,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [selectedPrompt, setSelectedPrompt] = useState<Prompt | null>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
   const [isAdmin, setIsAdmin] = useState(false);
@@ -998,6 +1345,7 @@ export default function App() {
         onSearch={handleSearch} 
         onScrollTo={scrollToSection} 
         onUploadClick={() => setIsUploadModalOpen(true)} 
+        onAdminLogin={() => setIsAdminLoginOpen(true)}
         isAdmin={isAdmin}
       />
       
@@ -1054,6 +1402,8 @@ export default function App() {
 
         <ContactSection />
 
+        {isAdmin && <AdminDashboard onUploadSuccess={handleUploadSuccess} />}
+
         <section className="bg-gold py-24 px-6 overflow-hidden relative">
           <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/3 text-[20vw] font-serif font-bold text-black/5 select-none whitespace-nowrap">
             MUSTAFE SAQARE
@@ -1087,7 +1437,7 @@ export default function App() {
         </section>
       </main>
 
-      <Footer onScrollTo={scrollToSection} />
+      <Footer onScrollTo={scrollToSection} onAdminLogin={() => setIsAdminLoginOpen(true)} />
 
       <AnimatePresence>
         {selectedPrompt && (
@@ -1100,6 +1450,12 @@ export default function App() {
           <UploadModal 
             onClose={() => setIsUploadModalOpen(false)} 
             onUploadSuccess={handleUploadSuccess}
+          />
+        )}
+        {isAdminLoginOpen && (
+          <AdminLoginModal 
+            onClose={() => setIsAdminLoginOpen(false)} 
+            onLogin={() => setIsAdmin((prev) => !prev)}
           />
         )}
       </AnimatePresence>

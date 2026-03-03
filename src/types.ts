@@ -3,6 +3,7 @@ export interface Prompt {
   title: string;
   prompt: string;
   image_url: string;
+  video_url?: string;
   creator: string;
   loves: number;
   views: number;
